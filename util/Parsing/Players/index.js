@@ -1,5 +1,7 @@
 import $ from 'jquery';
 
+import { nicknameToAbbr } from 'util/Teams';
+
 const FORWARD = 'F';
 const PP_FORWARD = 'PPF';
 const PK_FORWARD = 'PKF';
@@ -26,7 +28,7 @@ let output = {};
 export const getPlayers = data => {
 
     $(data).filter(".STHSGame_TeamLine").each((index, el) => {
-        let team = el.textContent;
+        let team = nicknameToAbbr(el.textContent);
         
         // Should only be B tags
         $(el).nextAll( "pre" ).first().children().each((index, el) => {
@@ -61,7 +63,6 @@ export const getPlayers = data => {
                 }
 
                 // TODO.. extra forwards / D and scratches are messed up.. not going to worry for now
-
                 addPositionToPlayer({ position, players, team });
             })
         });
@@ -126,7 +127,8 @@ const addPosition = ({ players, team, position, line, lineSeperator }) => {
                 name: player,
                 team,
                 position,
-                lines: [`${line}${lineNumber}`]
+                lines: [`${line}${lineNumber}`],
+                stats: {}
             }
         }
     });

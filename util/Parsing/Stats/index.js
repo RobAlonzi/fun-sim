@@ -92,8 +92,10 @@ const getPlayerStats = (arr) => {
                 player = addPlayer({
                     name: stat,
                     properties: {
-                        stats: { ...statLine },
-                        finalStats: { ...statLine }
+                        stats: { 
+                            live: { ...statLine },
+                            final: { ...statLine }
+                        },
                     }
                 });
                 // Why no player?!
@@ -101,8 +103,11 @@ const getPlayerStats = (arr) => {
                 debugger;  
             }
 
-            player.stats = { ...statLine };
-            player.finalStats = { ...statLine };
+            player.stats = {
+                live: { ...statLine },
+                final: { ...statLine }
+            }
+
             currentPlayer = player;
             return;
         }
@@ -112,69 +117,69 @@ const getPlayerStats = (arr) => {
 
         // Goals
         if(i % 15 === 1){
-            currentPlayer.finalStats.goals = parseInt(stat);
+            currentPlayer.stats.final.goals = parseInt(stat);
             return;
         }
 
         // Assists
         if(i % 15 === 2){
-            currentPlayer.finalStats.assists = parseInt(stat);
+            currentPlayer.stats.final.assists = parseInt(stat);
             return;
         }
 
         // Points
         if(i % 15 === 3){
-            currentPlayer.finalStats.points = parseInt(stat);
+            currentPlayer.stats.final.points = parseInt(stat);
             return;
         }
 
         // Plus Minus
         if(i % 15 === 4){
-            currentPlayer.finalStats.plusMinus = stat;
+            currentPlayer.stats.final.plusMinus = stat;
             return;
         }
 
         // PIM
         if(i % 15 === 5){
-            currentPlayer.finalStats.pims = parseInt(stat);
+            currentPlayer.stats.final.pims = parseInt(stat);
             return;
         }
 
         // Shots
         if(i % 15 === 6){
-            currentPlayer.finalStats.shots = parseInt(stat);
+            currentPlayer.stats.final.shots = parseInt(stat);
             return;
         }
 
         // Hits
         if(i % 15 === 7){
-            currentPlayer.finalStats.hits = parseInt(stat);
+            currentPlayer.stats.final.hits = parseInt(stat);
             return;
         }
 
         // Shots Blocked
         if(i % 15 === 8){
-            currentPlayer.finalStats.shotsBlocked = parseInt(stat);
+            currentPlayer.stats.final.shotsBlocked = parseInt(stat);
             return;
         }
 
         // Giveaways
         if(i % 15 === 9){
-            currentPlayer.finalStats.giveaways = parseInt(stat);
+            currentPlayer.stats.final.giveaways = parseInt(stat);
             return;
         }
 
         // Takeaways
         if(i % 15 === 10){
-            currentPlayer.finalStats.takeaways = parseInt(stat);
+            currentPlayer.stats.final.takeaways = parseInt(stat);
             return;
         }
 
         // Faceoffs
         if(i % 15 === 11){
             let [faceoffsWon, faceoffsLost ] = stat.split('/');
-            currentPlayer.finalStats.faceoffsWon = parseInt(faceoffsWon);
-            currentPlayer.finalStats.faceoffsLost = parseInt(faceoffsLost);
+            currentPlayer.stats.final.faceoffsWon = parseInt(faceoffsWon);
+            currentPlayer.stats.final.faceoffsLost = parseInt(faceoffsLost);
             return;
         }
 
@@ -183,7 +188,7 @@ const getPlayerStats = (arr) => {
             let [minutes, seconds ] = stat.split(':');
             let toi = parseInt(minutes) * 60 + parseInt(seconds);
 
-            currentPlayer.finalStats.minutesPlayed = toi;
+            currentPlayer.stats.final.minutesPlayed = toi;
             return;
         }
 
@@ -192,7 +197,7 @@ const getPlayerStats = (arr) => {
             let [minutes, seconds ] = stat.split(':');
             let toi = parseInt(minutes) * 60 + parseInt(seconds);
 
-            currentPlayer.finalStats.ppMinutesPlayed = toi;
+            currentPlayer.stats.final.ppMinutesPlayed = toi;
             return;
         }
 
@@ -201,7 +206,7 @@ const getPlayerStats = (arr) => {
             let [minutes, seconds ] = stat.split(':');
             let toi = parseInt(minutes) * 60 + parseInt(seconds);
 
-            currentPlayer.finalStats.pkMinutesPlayed = toi;
+            currentPlayer.stats.final.pkMinutesPlayed = toi;
             return;
         }
     })
@@ -235,15 +240,17 @@ const parseGoalieHTML = data => {
                 let [minutes, seconds] = other[0].split(' ')[0].split(':');
                 let toi = parseInt(minutes) * 60 + parseInt(seconds);
 
-                player.stats = { ...goalieStatLine };
-                player.finalStats = { 
-                    saves: parseInt(saves),
-                    shots: parseInt(shots),
-                    toi,
-                    descision: descision ? descision : goalieStatLine.descision, 
-                    wins: wins ? parseInt(wins) : goalieStatLine.wins, 
-                    loss: loss ? parseInt(loss) : goalieStatLine.loss, 
-                    otl: otl ? parseInt(otl) : goalieStatLine.otl, 
+                player.stats = {
+                    live: { ...goalieStatLine },
+                    final: { 
+                        saves: parseInt(saves),
+                        shots: parseInt(shots),
+                        toi,
+                        descision: descision ? descision : goalieStatLine.descision, 
+                        wins: wins ? parseInt(wins) : goalieStatLine.wins, 
+                        loss: loss ? parseInt(loss) : goalieStatLine.loss, 
+                        otl: otl ? parseInt(otl) : goalieStatLine.otl, 
+                    }
                 };
         });  
     });

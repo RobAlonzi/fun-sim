@@ -1,12 +1,15 @@
-import { getPlayers } from './Parsing/Players/index';
-import { includePlayerStats } from './Parsing/Stats/index';
-import { getGameEvents } from './Parsing/Event/index';
-import { mapScoringPlays } from './Parsing/Event/Goals';
+import { getGameInfo } from './Parsing/Game';
+import { getPlayers } from './Parsing/Players';
+import { includePlayerStats } from './Parsing/Stats';
+import { getGameEvents } from './Parsing/Events';
+import { mapScoringPlays } from './Parsing/Goals';
 
 let players = {};
-let events = {}
 
 export const mapData = data => {
+
+    // Get Game Stats
+    const gameInfo = getGameInfo(data);
     
     // Get Players
     players = getPlayers(data);
@@ -17,7 +20,7 @@ export const mapData = data => {
     // Get events
     const events = getGameEvents(data, players);
 
-    // TODO.. get scoring plays.. maybe add them to the goal events?
+    // Add scoring details to the goal events.. will mutate events object
     mapScoringPlays(data, events);
 
     debugger;
