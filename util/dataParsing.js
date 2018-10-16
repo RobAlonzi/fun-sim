@@ -7,9 +7,6 @@ import { mapScoringPlays } from './Parsing/Goals';
 let players = {};
 
 export const mapData = data => {
-
-    // Get Game Stats
-    const gameInfo = getGameInfo(data);
     
     // Get Players
     players = getPlayers(data);
@@ -17,17 +14,21 @@ export const mapData = data => {
     // Get Player Stats.. will mutate player object
     includePlayerStats(data, players);
 
+    // Get Game Stats
+    const { teams, game } = getGameInfo(data, players);
+
     // Get events
     const events = getGameEvents(data, players);
 
     // Add scoring details to the goal events.. will mutate events object
-    mapScoringPlays(data, events);
+    mapScoringPlays(data, events, teams);
 
-    debugger;
-
-    // TODO.. get refs
-
-    // TODO.. get attendance 
+    return {
+        game,
+        teams,
+        players,
+        events
+    }
 }
 
 
@@ -38,7 +39,7 @@ export const addPlayer = ({ name, properties }) => {
     let formattedKey = toCamelCase(name);
 
     if(!players[formattedKey]){
-        players[formattedKey] = { ...properties };
+        players[formattedKey] = { id: formattedKey, name, ...properties };
     }
 
     return players[formattedKey];

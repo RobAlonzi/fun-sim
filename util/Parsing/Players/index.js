@@ -1,6 +1,7 @@
 import $ from 'jquery';
 
-import { nicknameToAbbr } from 'util/Teams';
+import { fullNameToAbbr } from 'util/Teams';
+import { toCamelCase } from 'util/dataParsing';
 
 const FORWARD = 'F';
 const PP_FORWARD = 'PPF';
@@ -28,27 +29,65 @@ let output = {};
 export const getPlayers = data => {
 
     $(data).filter(".STHSGame_TeamLine").each((index, el) => {
-        let team = nicknameToAbbr(el.textContent);
+        let team = fullNameToAbbr(el.textContent);
         
         // Should only be B tags
         $(el).nextAll( "pre" ).first().children().each((index, el) => {
             
-            let position = getPosition(el.textContent)
-
-
+            let position = getPosition(el.textContent);
+            
             $(el).nextUntilWithTextNodes("b").each((i, el) => {
 
                 // I hate pre tags.. let's split them
                 let arr = el.wholeText.split(' ');
 
+
+                // Trying to normalize the output a little bit.. need to have no names beside each other in the array for the next bit to work
+                for(let i = 1; i < arr.length; i++){
+                    let item = arr[i];
+
+
+                    if([':', '-', 'PK', 'PP'].includes(item)){
+                        arr[i] = '';
+                        continue;
+                    }
+
+                    if(item.includes(',')){
+                        arr.splice((i + 1), 0, '');
+                        arr[i] = item.replace(',', '');
+                        continue;
+                    }
+
+                    // EDGE CASE Pierre-Edouard Bellemare doesn't have a space between him and the next guy so we gotta do weird stuffs..ugh
+                    // Don't think anyone has four names.. yet
+                    if(isNaN(item) && isNaN(arr[i - 1] || '') && isNaN(arr[i - 2] || '') && isNaN(arr[i + 1] || '')){
+                        arr.splice(i, 0, '');
+                    }
+                }
+                
+
                 // loop through.. if two consectutive items with text in them appear.. must be a name
                 for(let i = 1; i < arr.length; i++){
                     let prevItem = arr[i - 1];
                     let item = arr[i];
+                    let nextItem = arr[i + 1] || '';
+
+
 
                     // Combine them if this is true
+                    // Added a second blank item so to not lose a length on the array and throw i out of whack
+                    // This mimics just moving the text into the previous field
                     if(isNaN(prevItem) && isNaN(item)){
-                        arr.splice((i - 1), 2, `${prevItem} ${item}`);
+
+                        if(isNaN(nextItem)){
+                            arr[i - 1] = `${prevItem} ${item} ${nextItem}`;
+                            arr[i] = '';
+                            arr[i + 1] = '';
+                            continue;
+                        }
+
+                        arr[i - 1] = `${prevItem} ${item}`;
+                        arr[i] = '';
                     }
 
                 }
@@ -99,7 +138,9 @@ const addPositionToPlayer = ({ position, players, team }) => {
         case GOALIE:
             return addPosition({players, team, position: GOALIE, line: GOALIE, lineSeperator: 1});      
         case EXTRA_FORWARD:
+            return addExtrasPosition({players, team, position: EXTRA_FORWARD }); 
         case EXTRA_DEFENSE:
+            return addExtrasPosition({players, team, position: EXTRA_DEFENSE }); 
         case LAST_MINUTE_OFFENSIVE:
         case LAST_MINUTE_DEFENSIVE:
         case SCRATCHES:
@@ -128,6 +169,32 @@ const addPosition = ({ players, team, position, line, lineSeperator }) => {
                 team,
                 position,
                 lines: [`${line}${lineNumber}`],
+                stats: {}
+            }
+        }
+    });
+}
+
+
+const addExtrasPosition = ({players, team, position }) => {
+    players.shift();
+
+    const positions = position === EXTRA_FORWARD ? ['EV1', 'EV2', 'EV3', 'PP1', 'PP2', 'PK' ] : ['EV1', 'EV2', 'EV3', 'PP', 'PK1', 'PK2' ];
+
+    players.forEach((player, index) => {
+
+        let formattedName = toCamelCase(player.replace(/[^\w\s]/gi, ""));
+
+        // Already has it.. just push the position
+        if(output.hasOwnProperty(formattedName)){
+            output[formattedName].lines.push(`XF-${positions[index]}`)
+        } else {
+            output[formattedName] = {
+                id: formattedName,
+                name: player,
+                team,
+                position,
+                lines: [`XF-${positions[index]}`],
                 stats: {}
             }
         }
@@ -206,7 +273,3 @@ const getPosition = text => {
     debugger;
     // WHY YOU GET HERE?
 }
-
-// Utils
-const phraseToUpper = str => str.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
-const toCamelCase = str => phraseToUpper(str).replace(/\s+/g, '');

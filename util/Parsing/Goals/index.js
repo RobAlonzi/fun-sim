@@ -1,31 +1,37 @@
 import { findPlayerId, toCamelCase } from 'util/dataParsing';
+import { betweenParenthesis } from 'util/Parsing/helpers';
+import { fullNameToAbbr } from 'util/Teams';
 
-export const mapScoringPlays = (data, events) => {
-    let goals = getScoringPlays(data);
+export const mapScoringPlays = (data, events, teams) => {
+    let goals = getScoringPlays(data, teams);
 
     goals.forEach(goal => {
         let { period, time } = goal;
         let timeEvents = events[period][time].events;
 
-        timeEvents.map((event, index) => {
-            let result = event.result;
+        for(let i = 0, length = timeEvents.length; i < length; i++){
+            let result = timeEvents[i].result;
 
             // Find the goal event, morph it
             if(result.type === 'goal'){
-                events[period][time].events[index] = {
+                events[period][time].events[i].result = {
                     ...result,
+                    team: goal.team,
+                    score: goal.score,
                     player: goal.scorer,
                     assists: goal.assists,
                     variant: goal.variant
                 }
-            }
-        });
-    });
 
+                break;
+            }
+        }
+    });
 }
 
-const getScoringPlays = data => {
+const getScoringPlays = (data, teams) => {
     let output = [];
+    let score = { [teams.home]: 0, [teams.visitor]: 0}
 
     $(data).filter(".STHSGame_Period").each((index, el) => {
         let period = el.innerText;
@@ -48,11 +54,10 @@ const getScoringPlays = data => {
             let [team, playersTime] = node.textContent.split(' , ');
 
             // Turn 1. Avalanche into just the team
-            team = team.split('. ')[1];
+            team = fullNameToAbbr(team.split('. ')[1]);
 
             let [goalSummary, timeVariant] = playersTime.split(' at ');
             
-
             // If goals were (Empty Net), (PP) or (SH)
             // "18:13 (PP)"
             if(timeVariant.includes("(")){
@@ -62,7 +67,7 @@ const getScoringPlays = data => {
                 time = parseInt(minutes) * 60 + parseInt(seconds);
 
                 // Get between the parentheseis
-                variant = paranthesisRegex.exec(timeStr[1])[1];
+                variant = betweenParenthesis(timeStr.join(' '));
 
             } else{
                 let [minutes, seconds ] = timeVariant.split(':');
@@ -88,17 +93,25 @@ const getScoringPlays = data => {
                 }
 
                 return {
-                    player: findPlayerId(player.join(" ")),
-                    count: parseInt(count)
+                    id: findPlayerId(player.join(" ")),
+                    total: parseInt(count)
                 }
             });
-            
+
+            // Change score, get the previous score or use original score
+            score = {
+                ...(output.length > 0 ? output[output.length - 1].score : score),
+                [team]: (output.length > 0 ? output[output.length - 1].score[team] : score[team]) + 1
+            }
+
             output.push({
                 period: toCamelCase(period),
+                team,
+                score,
                 time,
                 variant: variant ? variant : "EV",
                 scorer: {
-                    player: findPlayerId(goalScorer.join(" ")),
+                    id: findPlayerId(goalScorer.join(" ")),
                     total: parseInt(goalSeasonTotal)
                 },
                 assists 
@@ -110,5 +123,12 @@ const getScoringPlays = data => {
     return output;
 }
 
+const determineBaseTime = period => {
 
-const paranthesisRegex = /\(([^)]+)\)/;
+    let [periodNumber, periodVariant] = period.split(' ');
+
+    // Get the actual numbers
+    periodNumber = parseInt((periodNumber.split('').filter(item => !isNaN(item)).join('') - 1) * 1200);
+
+    return periodVariant.includes('overtime') ? periodNumber + 3600 : periodNumber;
+}

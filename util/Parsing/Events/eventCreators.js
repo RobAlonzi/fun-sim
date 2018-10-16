@@ -7,11 +7,22 @@ import { findPlayerId } from 'util/dataParsing';
 // Shot
 export const createShotEvent = description => {
 
-    const playerName = description.replace("Shot by ", "").replace(".", "");
+    let playerName;
+    let event;
+
+    // Penalty Shot
+    if(description.includes('Penalty Shot by ')){
+        playerName = description.replace("Penalty Shot by ", "").split(" for ")[0];
+        event = 'penaltyShot';
+    } else{
+        playerName = description.replace("Shot by ", "").replace(".", "");
+        event = 'shot';
+    }
+
     const player = findPlayerId(playerName);
 
     return {
-        event: 'shot',
+        event,
         player
     }
 }

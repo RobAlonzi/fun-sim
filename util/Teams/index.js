@@ -1,11 +1,22 @@
-export const findTeamByNickname = team => {
-    const abbr = nicknameToAbbr(team);
-    return abbrToTeam(abbr);
+
+
+export const generateTeamImg = abbr => {
+	const team = teams[abbr];
+    return `https://www-league.nhlstatic.com/builds/site-core/8d679dc125a67f8bf52f63a8cb3e70be14f173e9_1491511772/images/logos/team/current/team-${team.id}-dark.svg`;
 }
 
-export const findTeamByAbbr = team => {
-    const abbr = team.replace(' ', '').toLowerCase();
-    return abbrToTeam(abbr);
+///////////////////////////////////////////
+// PARSING UTIL
+///////////////////////////////////////////
+export const findTeamByFullName = team => {
+	let abbr = fullNameToAbbr(team);
+
+	if(!abbr){
+		abbr = nicknameToAbbr(team);
+		
+	}
+
+	return abbrToTeam(abbr);
 }
 
 export const nicknameToAbbr = nickname => {
@@ -13,10 +24,49 @@ export const nicknameToAbbr = nickname => {
     return nicknames[formatted];
 }
 
+export const fullNameToAbbr = name => {
+	const formatted = name.replace(/\s+/g, '').replace(/[^\w\s]/gi, "").toLowerCase();
+    return fullNames[formatted] ? fullNames[formatted] : nicknameToAbbr(name);
+}
+
 const abbrToTeam = abbr => ({
 	...teams[abbr],
 	key: abbr
-})
+});
+
+const fullNames = {
+	anaheimducks: 'ana',
+	arizonacoyotes: 'arz',
+	bostonbruins: 'bos',
+	buffalosabres: 'buf',
+	calgaryflames: 'cgy',
+	carolinahurricanes: 'car',
+	chicagoblackhawks: 'chi',
+	coloradoavalanche: 'col',
+	columbusbluejackets: 'cbj',
+	dallasstars: 'dal',
+	detroitredwings: 'det',
+	edmontonoilers: 'edm',
+	floridapanthers: 'fla',
+	losangeleskings: 'lak',
+	minnesotawild: 'min',
+	montrealcanadiens: 'mtl',
+	nashvillepredators: 'nsh',
+	newjerseydevils: 'njd',
+	newyorkislanders: 'nyi',
+	newyorkrangers: 'nyr',
+	ottawasenators: 'ott',
+	philadelphiaflyers: 'phi',
+	pittsburghpenguins: 'pit',
+	sanjosesharks: 'sjs',
+	stlouisblues: 'stl',
+	tampabaylightning: 'tbl',
+	torontomapleleafs: 'tor',
+	vancouvercanucks: 'van',
+	vegasgoldenknights: 'vgk',
+	washingtoncapitals: 'wsh',
+	winnipegjets: 'wpg'
+}
 
 // Nickname Mapping
 const nicknames = {

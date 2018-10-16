@@ -263,51 +263,77 @@ can be combines (deflected shot, goal, save),
 this will do it
 /////////////////////////////////////////*/
 const combineSimilarEvents = events => {
+
     if(events.length === 1){
         return events;
     }
 
+    let shotEvents = ['shot', 'penaltyShot'];
     let shotResultEvents = ['shotMissed', 'shotHitPost', 'shotBlocked', 'shotSaved', 'goal'];
 
-    // Combine the deflect if the shot was deflected
-    if(events[0].event === 'shot' && events[1].event === 'shotDeflect'){
+    for(let i = 0; i < events.length; i++){
+        let currentEvent = events[i].event;
+        let nextEvent = events[i + 1] && events[i + 1].event;
 
-        let { event, ...other } = events[1];
+        // Combine the deflect if the shot was deflected
+        if(currentEvent === 'shot' && nextEvent === 'shotDeflect'){
 
-        events[0].deflect = {
-            ...other
+            let { event, ...other } =  events[i + 1];
+
+            events[i].deflect = {
+                ...other
+            }
+
+            // Remove the deflect event
+            events.splice((i + 1), 1);
+            --i;
+            
+            continue;
         }
 
-        // Remove the deflect event
-        events.splice(1, 1);
-    }
+        // Goal Review
+        if(shotEvents.includes(currentEvent) && nextEvent === 'goalReviewed'){
+            
+            events[i].review = {
+                outcome: events[i + 2].event
+            }
 
-    // Goal Review
-    if(events[0].event === 'shot' && events[1].event === 'goalReviewed'){
-        
-        events[0].review = {
-            outcome: events[2].event
+            // Remove the shot event
+            events.splice((i + 1), 2);
+            i = (i - 2) < 0 ? -1 : (i - 2);
+
+            continue;
         }
 
-        // Remove the shot event
-        events.splice(1, 2);
-    }
+        // Combine the shot events
+        if(shotEvents.includes(currentEvent) && shotResultEvents.includes(nextEvent)){
 
-    // Combine the shot events
-    if(events[0].event === 'shot' && shotResultEvents.includes(events[1].event)){
+            let { event, ...other } = events[i + 1];
 
-        let { event, ...other } = events[1];
+            events[i].result = {
+                type: event,
+                ...other 
+            }
 
-        events[0].result = {
-            type: event,
-            ...other 
+            // Remove the shot event
+            events.splice((i + 1), 1);
+            --i;
+
+            continue;
         }
-
-        // Remove the shot event
-        events.splice(1, 1);
     }
-
+    
     return events;
+}
+
+const determineBaseTime = period => {
+
+    let [periodNumber, periodVariant] = period.split(' ');
+
+    // Get the actual numbers
+    periodNumber = parseInt((periodNumber.split('').filter(item => !isNaN(item)).join('') - 1) * 1200);
+
+    return periodVariant.includes('overtime') ? periodNumber + 3600 : periodNumber;
 }
 
 // Utils

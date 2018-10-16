@@ -1,6 +1,7 @@
 import $ from 'jquery';
 
-import { findPlayerId, findPlayer, addPlayer } from 'util/dataParsing';
+import { fullNameToAbbr } from 'util/Teams';
+import { findPlayer, addPlayer } from 'util/dataParsing';
 
 //Player Name              G  A  P  +/- PIM S  H  SB GA TA FO     MP     PP MP  PK MP
 const statLine = {
@@ -38,9 +39,9 @@ export const includePlayerStats = data => {
 }
 
 const parsePlayerTables = (data) => {
-    let output = [];
-
     $(data).filter(".STHSGame_PlayerStatTable").each((index, el) => {
+
+        let team = fullNameToAbbr($(el).prev()[0].innerText.split(' for ')[1]);
 
         // Get text inside stats table pre
         let statsTable = $(el).children().first()[0].childNodes[0].data;
@@ -58,23 +59,29 @@ const parsePlayerTables = (data) => {
         for(let i = 1; i < arr.length; i++){
             let prevItem = arr[i - 1];
             let item = arr[i];
+            let nextItem = arr[i + 1];
 
             // Combine them if this it's a player name [includes letters, period, apostrophie, hyphen]
             if(/^[a-zA-Z\.\-\-\ ']+$/.test(prevItem) && /^[a-zA-Z\.\-\-\ ']+$/.test(item)){
-                arr.splice((i - 1), 2, `${prevItem} ${item}`);
+
+                arr[i - 1] = `${prevItem} ${item}`;
+                arr[i] = '';
+
+                if(/^[a-zA-Z\.\-\-\ ']+$/.test(nextItem)){
+                    arr[i - 1] = `${prevItem} ${item} ${nextItem}`;
+                    arr[i + 1] = '';
+                }
             }
 
         }
 
         // Remove the blank entries
         arr = arr.filter(item => item !== '');
-        output = [...output, ...arr];
+        return getPlayerStats(arr, team);
     });
-
-    return getPlayerStats(output);
 }
 
-const getPlayerStats = (arr) => {
+const getPlayerStats = (arr, team) => {
 
     let currentPlayer = null;
     
@@ -92,6 +99,7 @@ const getPlayerStats = (arr) => {
                 player = addPlayer({
                     name: stat,
                     properties: {
+                        team,
                         stats: { 
                             live: { ...statLine },
                             final: { ...statLine }
@@ -177,9 +185,9 @@ const getPlayerStats = (arr) => {
 
         // Faceoffs
         if(i % 15 === 11){
-            let [faceoffsWon, faceoffsLost ] = stat.split('/');
+            let [faceoffsWon, faceoffsTaken ] = stat.split('/');
             currentPlayer.stats.final.faceoffsWon = parseInt(faceoffsWon);
-            currentPlayer.stats.final.faceoffsLost = parseInt(faceoffsLost);
+            currentPlayer.stats.final.faceoffsTaken = parseInt(faceoffsTaken);
             return;
         }
 
