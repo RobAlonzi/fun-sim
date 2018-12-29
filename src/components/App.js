@@ -7,7 +7,6 @@ import { withStyles } from '@material-ui/core/styles';
 
 import Scoreboard from '@/components/scoreboard';
 import GameDate from '@/components/GameDate';
-import Officials from '@/components/Officials';
 import ScoringPlays from '@/components/ScoringPlays';
 import Penalties from '@/components/Penalties';
 import GameInfo from '@/components/GameInfo';
@@ -35,15 +34,15 @@ class App extends Component {
 
     render() {
         const { classes } = this.props;
-        const { teams, players, game, clock, goals, penalties, events } = this.props.state;
+        const { teams, players, game, clock, goals, notes, penalties, currentPenalties, shootout, events } = this.props.state;
         const homeTeam = teams[teams.home];
         const visitingTeam = teams[teams.visitor];
+        const isFinal = clock.period.key === 'final';
 
         return (
             <div className="main-app-container">
                 <GameDate date={game.date} />
-                <Scoreboard clock={clock} homeTeam={homeTeam} visitingTeam={visitingTeam} />
-                <Officials officials={game.officials} />
+                <Scoreboard clock={clock} homeTeam={homeTeam} visitingTeam={visitingTeam} penalties={currentPenalties} shootout={shootout} />
                 
                 <Tabs className={classes.tab} value={this.state.tabValue} onChange={this.handleTabChange} centered>
                     <Tab label="LIVE" />
@@ -58,17 +57,18 @@ class App extends Component {
                     </Grid>
 
                     <Grid item lg={6}>
-                        {this.state.tabValue === 0
+                        {
+                            this.state.tabValue === 0
                             ?
                             <Events data={events} players={players} teams={teams}/>
                             :
-                            <PlayerStats homeTeam={homeTeam} visitingTeam={visitingTeam} players={players} />
+                            <PlayerStats homeTeam={homeTeam} visitingTeam={visitingTeam} players={players} isFinal={isFinal} />
                         }
                     </Grid>
 
                     <Grid item lg={3}>
                         <TeamStats homeTeam={homeTeam} visitingTeam={visitingTeam} />
-                        <GameInfo info={game} />
+                        <GameInfo info={game} notes={notes} />
                     </Grid>
                 </Grid> 
             </div>

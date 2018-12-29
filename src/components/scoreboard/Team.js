@@ -5,7 +5,8 @@ import { withStyles } from '@material-ui/core/styles';
 
 const styles = theme => ({
     logoContainer: {
-        margin: '20px 0'
+        margin: '10px 0',
+        maxWidth: 75,
     },
     nameContainer: {
         margin: '20px 40px'
@@ -31,7 +32,7 @@ const renderTeamLogo = (id, name, classes) => {
 const Team = ({ classes, team: { id, key, name, stats }, isHome }) => {
 
     return (
-        <Grid container alignItems='center' justify='center'>
+        <Grid container alignItems='center' justify='center' style={{ flexWrap: 'nowrap'}}>
             {isHome ? renderTeamScore(stats.goals.total, classes) : renderTeamLogo(id, name, classes)}
             <Grid item className={classes.nameContainer}>
                 <Grid container direction='column' alignItems='center'>

@@ -3,6 +3,8 @@ import set from 'lodash.set';
 import get from 'lodash.get';
 import cloneDeep from 'lodash.clonedeep';
 
+import { formatTime } from '@/util/Format';
+
 export default class GameContainer extends Container {
 
     constructor(props = {}) {
@@ -18,6 +20,24 @@ export default class GameContainer extends Container {
 
         // Set interval
         this.__startHeartbeat();
+    }
+
+    pauseGame = isPaused => {
+        this.setState(() => ({
+            settings: {
+                ...this.state.settings,
+                isPaused
+            }
+        }))
+    }
+
+    updateGameSpeed = speed => {
+        this.setState(() => ({
+            settings: {
+                ...this.state.settings,
+                gameSpeed: speed
+            }
+        }))
     }
 
     // PRIVATE
@@ -46,7 +66,7 @@ export default class GameContainer extends Container {
         this.__addEvents(clock.from, clock.to);
 
         if (clock.periodChange) {
-            if (period.key === 'shootout') {
+            if (period && period.key === 'shootout') {
                 nextFn = this.__startShootout;
             }
 
@@ -64,41 +84,59 @@ export default class GameContainer extends Container {
         const shootoutAttempts = Object.values(events['shootout'])[0].events;
         let winnerKey;
         let attemptNumber = 0;
+        const updatedState = {};
+
+        const [home, visitor] = this.__getTeamKeys();
+        updatedState.shootout = {
+            [home]: [],
+            [visitor]: [],
+        }
+        
 
         const interval = setInterval(() => {
+            
+            // Attempts
             const event = shootoutAttempts[attemptNumber];
-            this.setState(() => ({
-                events: [{ data: { ...event, isShootoutAttempt: true } }, ...this.state.events]
-            }));
             attemptNumber += 1;
 
+            // Adding Events
+            updatedState.events = [{ data: { ...event, isShootoutAttempt: true } }, ...this.state.events]
+            const team = this.__getPlayerTeam(event.player);
+            const result = event.result.type === 'goal' ? 'goal' : 'miss';
+
+            updatedState.shootout[team] = [...updatedState.shootout[team], {
+                player: event.player,
+                result
+            }];
+
             if (attemptNumber === shootoutAttempts.length) {
-                debugger;
 
                 // If last shot is a goal.. shooter team wins
                 // If save.. goalie team wins
                 if(event.result.type === 'goal'){
                     winnerKey = this.state.players[event.player].team;
                 } else {
-                    winnerKey = oppositeTeamKey(this.state.teams, this.state.players[event.player].team)
+                    winnerKey = this.__getOppositeTeamKey(this.state.players[event.player].team)
                 }
 
-                this.setState(() => ({
-                    teams: { 
-                        ...this.state.teams,
-                        [winnerKey]: {
-                            ...this.state.teams[winnerKey],
-                            stats: {
-                                ...this.state.teams[winnerKey].stats,
-                                goals: {
-                                    ...this.state.teams[winnerKey].stats.goals,
-                                    total: this.state.teams[winnerKey].stats.goals.total + 1
-                                }
+                updatedState.teams = {
+                    ...this.state.teams,
+                    [winnerKey]: {
+                        ...this.state.teams[winnerKey],
+                        stats: {
+                            ...this.state.teams[winnerKey].stats,
+                            goals: {
+                                ...this.state.teams[winnerKey].stats.goals,
+                                total: this.state.teams[winnerKey].stats.goals.total + 1
                             }
                         }
                     }
-                }));
+                }                
+            }
 
+            this.setState(updatedState);
+
+            if (attemptNumber === shootoutAttempts.length) {
                 clearInterval(interval);
                 this.__endGame();
             }
@@ -106,13 +144,39 @@ export default class GameContainer extends Container {
     }
 
     __endGame = () => {
+        const isExtraTime = this.state.clock.period.isExtraTime;
+        const isShootout = this.state.clock.period.isExtraTime && this.state.clock.period.key === 'shootout';
+        let name = 'Final';
+        
+        if(isExtraTime && !isShootout){
+            name = `${name} (OT)`;
+        }
 
+        if(isShootout){
+            name = `${name} (SO)`;
+        }
+
+        const endGameState = {
+            teams: this.state.final.teams,
+            players: this.state.final.players,
+            clock: {
+                ...this.state.clock,
+                period: {
+                    key: 'final',
+                    name,
+                    isExtraTime,
+                    isShootout,
+                }
+            } 
+        };
+        
+        this.setState(endGameState);
     }
 
     __calculateClockRange = () => {
         const { clock, settings } = this.state;
         let from = clock.time;
-        let to = from + settings.timeInterval;
+        let to = from + settings.gameSpeed;
         let periodChange = false;
 
         // If the clock is at 0, change period
@@ -171,7 +235,7 @@ export default class GameContainer extends Container {
 
                     newEvents.unshift({ time: plays.time, data: play });
                     
-                    const gotEvents = ['faceoff', 'shot', 'penalty', 'hit', 'icing', 'offside'];
+                    const gotEvents = ['faceoff', 'shot', 'penalty', 'hit', 'icing', 'offside', 'fight', 'ejected', 'injury', 'goalieReplaced'];
 
                     if(!gotEvents.includes(play.event)){
                         debugger;
@@ -204,7 +268,6 @@ export default class GameContainer extends Container {
                             this.__addTeamShot(play);
                             this.__addGoal({ time: plays.time, data: play.result });
                             this.intervention = { time: plays.time.time, reason: 'goal', delay: 5000 };
-                            break;
                         }
                     }
 
@@ -219,6 +282,25 @@ export default class GameContainer extends Container {
                         this.__addPenalty({ time: plays.time, data: play })
                     }
 
+                    // FIGHT
+                    if (play.event === 'fight') {
+                        this.__addFight({ time: plays.time, data: play })
+                    }
+
+                    // EJECTED
+                    if (play.event === 'ejected') {
+                        this.__addEjection({ time: plays.time, data: play })
+                    }
+
+                    // INJURY
+                    if (play.event === 'injury') {
+                        this.__addInjury({ time: plays.time, data: play });
+                    }
+
+                    // GOALIE SWITCH
+                    if (play.event === 'goalieReplaced') {
+                        this.__switchGoalie({ time: plays.time, data: play });
+                    }
                 }
             }
         }
@@ -268,7 +350,7 @@ export default class GameContainer extends Container {
     }
 
     __addGoal = goal => {
-        // Add shots + goals to player
+        // Add goal to player
         const goalScorer = goal.data.player.id;
         const goalObjPath = ['players', goalScorer, 'stats', 'goals'];
         const prevGoalValue = get(this.updatedState, goalObjPath, this.state.players[goalScorer].stats.goals);
@@ -287,7 +369,7 @@ export default class GameContainer extends Container {
         this.__addToState(teamObjPath, prevTeamGoalValue + 1);
 
         // Get goalie
-        const goalieKey = getGoalie(this.state.teams, oppositeTeamKey(this.state.teams, goal.data.team));
+        const goalieKey = this.__getTeamGoalie(this.__getOppositeTeamKey(goal.data.team));
         const prevValue = get(this.updatedState, ['players', goalieKey, 'stats', 'shots'], this.state.players[goalieKey].stats.shots);
         this.__addToState(['players', goalieKey, 'stats', 'shots'], prevValue + 1);
 
@@ -317,11 +399,63 @@ export default class GameContainer extends Container {
         // Prev Values
         const prevPlayerValue = get(this.updatedState, playerObjPath, this.state.players[penalty.data.player].stats.pims);
         const prevTeamValue = get(this.updatedState, teamObjPath, this.state.teams[this.state.players[penalty.data.player].team].stats.pims);
+        
 
         // State
         this.__addToState(['penalties'], [penalty, ...penalties]);
         this.__addToState(playerObjPath, prevPlayerValue + minutes);
         this.__addToState(teamObjPath, prevTeamValue + minutes);
+
+        if(minutes === 2 || penalty.data.penalty !== 'Fighting'){
+            const prevCurrentPenalties = get(this.updatedState, ['currentPenalties'], []);
+            const data = {
+                player: this.state.players[penalty.data.player].name,
+                type: penalty.data.type,
+                penalty: penalty.data.penalty,
+                team: this.state.players[penalty.data.player].team,
+                period: penalty.time.key,
+                start: penalty.time.time,
+                duration: minutes * 60,
+            };
+            this.__addToState(['currentPenalties'], [data, ...prevCurrentPenalties]);
+        }
+    }
+
+    __addFight = fight => {
+        const notePath = ['notes'];
+        const prevValue = get(this.updatedState, notePath, this.state.notes);
+        
+        const data = {
+            desc: fight.data.description,
+            time: fight.time
+        };
+        
+        this.__addToState(notePath, [...prevValue, data]);
+    }
+
+    __addEjection = ejection => {
+        const notePath = ['notes'];
+        const prevValue = get(this.updatedState, notePath, this.state.notes);
+        const teamKey = this.__getPlayerTeam(ejection.data.player);
+        
+        const data = {
+            desc: ejection.data.description.replace(' is ejected ', ` (${teamKey.toUpperCase()}) is ejected `),
+            time: ejection.time
+        };
+        
+        this.__addToState(notePath, [...prevValue, data]);
+    }
+
+    __addInjury = injury => {
+        const notePath = ['notes'];
+        const prevValue = get(this.updatedState, notePath, this.state.notes);
+        
+        const data = {
+            desc: injury.data.description,
+            time: injury.time
+        };
+        
+        this.__addToState(notePath, [...prevValue, data]);
     }
 
     __addFaceoff = faceoff => {
@@ -355,6 +489,34 @@ export default class GameContainer extends Container {
         this.__addToState(teamObjPath, prevTeamValue + 1);
     }
 
+    __switchGoalie = event => {
+        const teamKey = this.__getPlayerTeam(event.data.player);
+        const goalPath = ['teams', teamKey, 'inGoal'];
+        this.__addToState(goalPath, event.data.player);
+
+
+        // Adding player stat line
+        const playerObjPath = ['players', event.data.player, 'stats'];
+        const prevPlayerValue = get(this.updatedState, playerObjPath, this.state.players[event.data.player].stats);
+
+        if(!Object.values(prevPlayerValue).length){
+            this.__addToState(playerObjPath, { saves: 0, shots: 0 });
+        }
+
+        // Adding note.
+        const notePath = ['notes'];
+        const prevValue = get(this.updatedState, notePath, this.state.notes);
+        
+        const data = {
+            desc: event.data.description,
+            time: event.time
+        };
+        
+        this.__addToState(notePath, [...prevValue, data]);
+    }
+
+
+
     /*/////////////////////////////////////////////////
     //////////////////// STATE ////////////////////////
     */////////////////////////////////////////////////
@@ -374,7 +536,6 @@ export default class GameContainer extends Container {
             clock: {}
         };
 
-        // TODO..manual merge of each piece of state
 
         // Clock
         newState.clock.period = this.updatedState.clock.period || this.state.clock.period;
@@ -390,13 +551,50 @@ export default class GameContainer extends Container {
             newState.penalties = [...this.state.penalties, ...this.updatedState.penalties];
         }
 
+        // Current penalties clock
+        if (this.updatedState.currentPenalties || this.state.currentPenalties) {
+            const currentPenalties = [];
+            [...(this.updatedState.currentPenalties || []), ...(this.state.currentPenalties || [])].forEach(penalty => {
+                // It's still the same period the penalty took place
+                if (newState.clock.period.key === penalty.period){
+                    // If the penalty hasn't expired yet
+                    if ((penalty.start + penalty.duration) > newState.clock.time){
+                        currentPenalties.push({
+                            ...penalty,
+                            remaining: (penalty.start + penalty.duration) - newState.clock.time
+                        });
+                    }
+                } else {
+                    // Different period.. do different math
+                    const periodTime = this.state.periods[penalty.period].totalTime;
+                    if ((penalty.start + penalty.duration) > (periodTime + newState.clock.time)){
+                        currentPenalties.push({
+                            ...penalty,
+                            remaining: (penalty.start + penalty.duration) - (periodTime + newState.clock.time)
+                        });
+                    }
+                }
+            });
+
+            newState.currentPenalties = currentPenalties;
+        }
+
         // Goals
         if (this.updatedState.goals) {
             newState.goals = { ...this.state.goals };
             if (Object.prototype.hasOwnProperty.call(this.state.goals, newState.clock.period.key)) {
-                newState.goals[newState.clock.period.key] = [this.updatedState.goals, ...this.state.goals[newState.clock.period.key]]
+                newState.goals[newState.clock.period.key] = [...this.state.goals[newState.clock.period.key], this.updatedState.goals]
             } else {
                 newState.goals[newState.clock.period.key] = [this.updatedState.goals];
+            }
+
+            // If the last goal was a PP goal, we need to wipe one of the penalties
+            // TODO: Coinciding penalties?
+            const latestGoal = newState.goals[newState.clock.period.key][newState.goals[newState.clock.period.key].length - 1];
+            if(latestGoal.data.variant === 'PP'){
+                // Find the first minor from the other team
+                const index = newState.currentPenalties.findIndex(penalty => penalty.team === this.__getOppositeTeamKey(latestGoal.data.team) && penalty.type === 'Minor');
+                newState.currentPenalties.splice(index, 1);
             }
         }
 
@@ -417,12 +615,23 @@ export default class GameContainer extends Container {
             newState.teams = cloneDeep(this.state.teams);
             Object.entries(this.updatedState.teams).forEach(team => {
                 const [key, stats] = team;
-                Object.values(stats).forEach(stat => {
+                const { inGoal, ...other } = stats;
+
+                if(inGoal){
+                    newState.teams[key].inGoal = inGoal;
+                }
+                
+                Object.values(other).forEach(stat => {
                     Object.keys(stat).forEach(statKey => {
                         newState.teams[key].stats[statKey] = cloneDeep(stat[statKey]);
                     });
                 });
             });
+        }
+
+        // NOTES
+        if (this.updatedState.notes) {
+            newState.notes = this.updatedState.notes;
         }
 
         // Set the state!
@@ -432,6 +641,12 @@ export default class GameContainer extends Container {
             callback();
         }, get(this, ['intervention', 'delay'], 1000));
     }
+
+    // UTIL
+    __getPlayerTeam = key => playerTeamKey(this.state.players[key]);
+    __getTeamGoalie = key => getGoalie(this.state.teams, key);
+    __getOppositeTeamKey = key => oppositeTeamKey(this.state.teams, key);
+    __getTeamKeys = () => getTeamKeys(this.state.teams);
 }
 
 
@@ -439,7 +654,11 @@ export default class GameContainer extends Container {
 const mapDefaultState = props => {
     const output = {
         loading: true,
-        finalData: {},
+        final: {},
+        settings: {
+            gameSpeed: 10,
+            isPaused: false,
+        },
     };
 
     if (!!props.loading) {
@@ -453,6 +672,7 @@ const mapDefaultState = props => {
             period: Object.values(periods)[0],
             time: 0,
         },
+        currentPenalties: [],
         events: [],
         final,
         game,
@@ -460,14 +680,24 @@ const mapDefaultState = props => {
         loading: props.loading,
         notes: [],
         penalties: [],
-        periods: periods,
+        periods,
         players,
         settings: {
-            timeInterval: 500,
+            gameSpeed: 10,
+            isPaused: false,
         },
+        shootout: {},
         teams,
     }
 
+}
+
+function getTeamKeys(teams){
+    return Object.keys(teams).filter(key => !['home', 'visitor'].includes(key));
+}
+
+function playerTeamKey(player){
+    return player.team;
 }
 
 function oppositeTeamKey(teams, teamKey){
@@ -475,5 +705,5 @@ function oppositeTeamKey(teams, teamKey){
 }
 
 function getGoalie(teams, key){
-    return teams[key].skaters.inGoal;
+    return teams[key].inGoal;
 }

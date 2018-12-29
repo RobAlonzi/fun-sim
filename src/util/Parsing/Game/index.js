@@ -71,8 +71,8 @@ const getTeamInfo = (data, players) => {
             skaters: {
                 players: homePlayers,
                 goalies: homeGoalies,
-                inGoal: homeGoalies[0]
-            }
+            },
+            inGoal: homeGoalies[0]
         },
         [visitor.key] : {
             ...visitor,
@@ -83,8 +83,8 @@ const getTeamInfo = (data, players) => {
             skaters: {
                 players: visitorPlayers,
                 goalies: visitorGoalies,
-                inGoal: visitorGoalies[0]
-            }
+            },
+            inGoal: visitorGoalies[0]
         },
         home: home.key,
         visitor: visitor.key

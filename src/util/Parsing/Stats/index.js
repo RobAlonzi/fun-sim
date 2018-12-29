@@ -4,34 +4,6 @@ import { fullNameToAbbr } from '@/util/Teams';
 import { findPlayer, addPlayer } from '@/util/dataParsing';
 
 //Player Name              G  A  P  +/- PIM S  H  SB GA TA FO     MP     PP MP  PK MP
-const statLine = {
-    goals: 0,
-    assists: 0,
-    points: 0,
-    plusMinus: 0,
-    pims: 0,
-    shots: 0,
-    hits: 0,
-    shotsBlocked: 0,
-    giveaways: 0,
-    takeaways: 0,
-    faceoffsWon: 0,
-    faceoffsTaken: 0,
-    minutesPlayed: 0,
-    ppMinutesPlayed: 0,
-    pkMinutesPlayed: 0
-};
-
-const goalieStatLine = {
-    saves: 0,
-    shots: 0,
-    toi: 0,
-    descision: '-', 
-    wins: 0, 
-    loss: 0, 
-    otl: 0, 
-}
-
 // This will add stats and finalStats properties to the player objects
 export const includePlayerStats = data => {
     parsePlayerTables(data);
@@ -100,10 +72,7 @@ const getPlayerStats = (arr, team) => {
                     name: stat,
                     properties: {
                         team,
-                        stats: { 
-                            live: { ...statLine },
-                            final: { ...statLine }
-                        },
+                        stats: {},
                     }
                 });
                 // Why no player?!
@@ -111,18 +80,13 @@ const getPlayerStats = (arr, team) => {
                 debugger;  
             }
 
-            player.stats = {
-                live: { ...statLine },
-                final: { ...statLine }
-            }
-
+            player.stats = {}
             currentPlayer = player;
             return;
         }
 
         // These are the stat lines
         // Player Name              G  A  P  +/- PIM S  H  SB GA TA FO     MP     PP MP  PK MP
-
         // Goals
         if(i % 15 === 1){
             currentPlayer.stats.goals = parseInt(stat);
@@ -227,7 +191,7 @@ const parseGoalieHTML = data => {
         Array.prototype.slice.call(el.childNodes).filter(node => node.nodeName !== "BR").map(node => {
                 let desc = node.nodeValue;
                 let [ nameAndTeam, savesShots, ...other ] = desc.split(', ');
-                let descision, wins, loss, otl;
+                let decision, wins, loss, otl;
 
                 //This will isolate the player name
                 let playerName = nameAndTeam.split(' (')[0];
@@ -238,7 +202,7 @@ const parseGoalieHTML = data => {
 
                 // The goalie got a win or a loss
                 if(other.length > 1){
-                    descision = other[0];
+                    decision = other[0];
                     [ wins, loss, otl ] = other[1].split('-');
                     
                     // Take them out
@@ -249,16 +213,13 @@ const parseGoalieHTML = data => {
                 let toi = parseInt(minutes) * 60 + parseInt(seconds);
 
                 player.stats = {
-                    live: { ...goalieStatLine },
-                    final: { 
-                        saves: parseInt(saves),
-                        shots: parseInt(shots),
-                        toi,
-                        descision: descision ? descision : goalieStatLine.descision, 
-                        wins: wins ? parseInt(wins) : goalieStatLine.wins, 
-                        loss: loss ? parseInt(loss) : goalieStatLine.loss, 
-                        otl: otl ? parseInt(otl) : goalieStatLine.otl, 
-                    }
+                    saves: parseInt(saves),
+                    shots: parseInt(shots),
+                    toi,
+                    decision: decision ? decision : null, 
+                    wins: wins ? parseInt(wins) : null, 
+                    loss: loss ? parseInt(loss) : null, 
+                    otl: otl ? parseInt(otl) : null, 
                 };
         });  
     });

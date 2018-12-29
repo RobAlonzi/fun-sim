@@ -75,6 +75,11 @@ const config = merge(common, {
       filename: 'index.html',
       inject: 'body',
     }),
+    new webpack.DefinePlugin({
+      CONFIG: JSON.stringify({
+        basepath: '/goodies/play-by-play'
+      })
+    }),
     new webpack.optimize.OccurrenceOrderPlugin(),
     new webpack.LoaderOptionsPlugin({
       minimize: true,

@@ -43,13 +43,6 @@ class TeamStats extends Component {
                     homeTeam={{ id: homeTeam.id, stat: homeTeam.stats.blockedShots }}
                     visitingTeam={{ id: visitingTeam.id, stat: visitingTeam.stats.blockedShots }}
                 />
-                <Divider />
-                <TeamStat 
-                    title="Powerplay (%)" 
-                    homeTeam={{ id: homeTeam.id, stat: homeTeam.stats.powerplay.pct}}
-                    visitingTeam={{ id: visitingTeam.id, stat: visitingTeam.stats.powerplay.pct }}
-                    statAppend="%"
-                />
             </Paper>
         )
     }

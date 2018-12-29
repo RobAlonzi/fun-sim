@@ -16,11 +16,11 @@ const styles = theme => ({
 })
 
 
-const Scoreboard = ({ clock, homeTeam, visitingTeam, classes }) => {
+const Scoreboard = ({ clock, homeTeam, visitingTeam, penalties, shootout, classes }) => {    
     return (
         <Paper className={classes.container} elevation={0}>
             <Team team={visitingTeam} />
-            <Scoreclock clock={clock} />
+            <Scoreclock clock={clock} penalties={penalties} homeTeam={homeTeam} visitingTeam={visitingTeam} shootout={shootout} />
             <Team team={homeTeam} isHome={true} />
         </Paper>
     )

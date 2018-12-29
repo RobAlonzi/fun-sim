@@ -1,7 +1,7 @@
 import React from 'react';
 
 const Footer = () => (
-    <div> FOOTER! </div>
+    <div> v 0.5 </div>
 );
 
 

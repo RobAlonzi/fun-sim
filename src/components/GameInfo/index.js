@@ -4,9 +4,11 @@ import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
+import Divider from '@material-ui/core/Divider';
 import { withStyles } from '@material-ui/core/styles';
 
-import { formatCurrency } from '@/util/Format';
+import Officials from '@/components/Officials';
+import { formatCurrency, formatTime } from '@/util/Format';
 
 const styles = theme => ({
     tabs: {
@@ -31,9 +33,22 @@ class GameInfo extends Component {
     handleTabChange = (event, value) => this.setState(() => ({ tabValue: value }));
 
     renderGameNotes = () => {
+        const { info: { officials }, notes } = this.props;
         return (
             <React.Fragment>
-                <Typography>No Game Notes.</Typography>
+                { notes.length ?
+                    notes.map((note, index) => {
+                        return (
+                            <Typography paragraph key={index}>
+                            {`${note.desc.replace('.', '')} at ${formatTime(note.time.time)} of the ${note.time.period}.`}
+                            </Typography>
+                        )}
+                    )
+                :
+                    <Typography>No Game Notes.</Typography>    
+                }
+                <Divider style={{ margin: '20px 0'}} />
+                <Officials officials={officials} />
             </React.Fragment>
         )
     }
@@ -114,7 +129,7 @@ class GameInfo extends Component {
     }
 
     render() {
-        const { classes, info } = this.props;
+        const { classes } = this.props;
         return (
             <Paper className={classes.container}>
                 <Tabs className={classes.tabs} value={this.state.tabValue} onChange={this.handleTabChange} centered>

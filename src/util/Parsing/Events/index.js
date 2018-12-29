@@ -14,6 +14,7 @@ import {
     createPenaltyEvent,
     createFightingEvent,
     createFightingPenaltyEvent,
+    createMisconductPenaltyEvent,
     createEjectedEvent,
     createInjuryEvent,
     createOffsideEvent,
@@ -200,6 +201,11 @@ const mapEvent = event => {
     // Minor Penalty
     if(event.includes('Minor Penalty')){
         return createPenaltyEvent(event);
+    }
+
+    // Misconduct Penalty 
+    if(event.includes('Misconduct Penalty')){
+        return createMisconductPenaltyEvent(event);
     }
 
     // Figthting Penalty

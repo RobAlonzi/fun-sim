@@ -9,6 +9,25 @@ import { mapScoringPlays } from './Parsing/Goals';
 let players = {};
 const GAME_SETTINGS = {};
 
+const LIVE_PLAYER_STATS = {
+    goals: 0,
+    assists: 0,
+    points: 0,
+    pims: 0,
+    shots: 0,
+    hits: 0,
+    shotsBlocked: 0,
+    giveaways: 0,
+    takeaways: 0,
+    faceoffsWon: 0,
+    faceoffsTaken: 0,
+};
+
+const LIVE_GOALIE_STATS = {
+    saves: 0,
+    shots: 0, 
+}
+
 export const mapData = (data, isPlayoffs) => {
 
     // TODO .. clean up
@@ -36,20 +55,22 @@ export const mapData = (data, isPlayoffs) => {
     const finalStats = { players: {} };
     Object.values(players).forEach(player => {
         const {stats, ...otherStats} = player;
+        const isStartingGoalie = otherStats.lines && otherStats.lines.includes('G1');
+
         liveStats.players[otherStats.id] = {
             ...otherStats,
-            stats: stats.live,
+            stats: otherStats.position === 'G' ? isStartingGoalie ? cloneDeep(LIVE_GOALIE_STATS) : {} : cloneDeep(LIVE_PLAYER_STATS),
         }
 
         finalStats.players[otherStats.id] = {
             ...otherStats,
-            stats: stats.final,
+            stats,
         }
     });
 
-
     liveStats.teams = cloneDeep(teams);
     finalStats.teams = cloneDeep(teams);
+
 
     // Live
     liveStats.teams[liveStats.teams.home].stats = cloneDeep(liveStats.teams[liveStats.teams.home].stats.live);
@@ -116,5 +137,4 @@ export const findPlayerId = player => {
 // Utils
 const phraseToUpper = str => str.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
 export const toCamelCase = str => phraseToUpper(str.replace(/[^\w\s]/gi, "")).replace(/\s+/g, '');
-
 export const getGameType = () => GAME_SETTINGS.GAME_TYPE;

@@ -43,7 +43,7 @@ const RenderApp = () => (
 
 
 const MainApp = () => (
-    <Router>
+    <Router basename={CONFIG.basepath}>
         <MuiThemeProvider theme={theme}>
             <Route path='/:season/:gameId' component={RenderApp} />
         </MuiThemeProvider>

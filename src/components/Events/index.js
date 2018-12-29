@@ -1,7 +1,11 @@
 import React, { Component } from 'react';
 import Paper from '@material-ui/core/Paper';
+import Pagination from '@material-ui/core/TablePagination';
+import Typography from '@material-ui/core/Typography';
 
+import Ejection from './Ejection';
 import Faceoff from './Faceoff';
+import Fight from './Fight';
 import Hit from './Hit';
 import Shot from './Shot';
 import Penalty from './Penalty';
@@ -17,9 +21,15 @@ const Event = ({ event: { data, time }, players, teams }) => {
     let Component = null;
 
     switch(data.event){
+        case 'ejected':
+            Component = Ejection;
+            break;
         case 'faceoff':
             Component = Faceoff;
             break;
+        case 'fight':
+            Component = Fight;
+            break;    
         case 'hit':
             Component = Hit;
             break;
@@ -41,7 +51,6 @@ const Event = ({ event: { data, time }, players, teams }) => {
         case 'injury':
             Component = Injury;
             break;       
-        // TODO
         case 'shot':
             Component = Shot;
             break;
@@ -50,7 +59,7 @@ const Event = ({ event: { data, time }, players, teams }) => {
             break;
         case 'penaltyShot':
             Component = PenaltyShot;
-            break;   
+            break;    
         default:
             debugger;    
     }
@@ -65,12 +74,46 @@ const Event = ({ event: { data, time }, players, teams }) => {
 }
 
 class Events extends Component {
+
+    state = {
+        page: 0,
+        rowsPerPage: 25,
+    }
+
+    handleChangePage = (event, page) => {
+        this.setState({ page });
+    }
+    
+    handleChangeRowsPerPage = event => {
+        this.setState({ rowsPerPage: event.target.value });
+    }
+
     render() {
         const { data, players, teams } = this.props;
+        const { rowsPerPage, page } = this.state;
         return (
-            <Paper>
-                { data.map((event, index) => <Event key={index} event={event} players={players} teams={teams} />)}
-            </Paper>
+            <React.Fragment>
+                <Paper>
+                    <Typography variant="h5" style={{ padding: 15 }}> Latest Events </Typography>
+                    <Pagination
+                        component="div"
+                        count={data.length}
+                        rowsPerPage={rowsPerPage}
+                        page={page}
+                        backIconButtonProps={{ 'aria-label': 'Previous Page' }}
+                        nextIconButtonProps={{ 'aria-label': 'Next Page' }}
+                        rowsPerPageOptions={[25, 50, 75]}
+                        onChangePage={this.handleChangePage}
+                        onChangeRowsPerPage={this.handleChangeRowsPerPage}
+                    />
+                    { 
+                        data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                            .map((event, index) => <Event key={index} event={event} players={players} teams={teams} />)
+                    }
+                </Paper>
+
+                
+            </React.Fragment>    
         )
     }
 }

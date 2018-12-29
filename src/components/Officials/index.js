@@ -6,8 +6,8 @@ import Typography from '@material-ui/core/Typography';
 
 const Officials = ({ officials }) => {
     return (
-        <Paper style={{ padding: '10px 20px'}} elevation={0} square>
-            <Grid container alignItems='flex-end' direction='column'>
+        <Paper elevation={0} square>
+            <Grid container direction='column'>
                 <Grid item><Typography>Referees: {officials.referees.join(' and ')}</Typography></Grid>
                 <Grid item><Typography>Linesmen: {officials.linesman.join(' and ')}</Typography></Grid>
             </Grid>

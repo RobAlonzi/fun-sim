@@ -55,6 +55,11 @@ const config = merge(common, {
 
   plugins: [
     new webpack.NamedModulesPlugin(),
+    new webpack.DefinePlugin({
+      CONFIG: JSON.stringify({
+        basepath: '/'
+      })
+    }),
     new webpack.LoaderOptionsPlugin({
       test: /\.jsx?$/,
       options: {

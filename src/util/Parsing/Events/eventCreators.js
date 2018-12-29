@@ -206,6 +206,20 @@ export const createFightingPenaltyEvent = description => {
     }
 }
 
+export const createMisconductPenaltyEvent = description => {
+    const text = description.replace('Major / Game Misconduct Penalty to ', '');
+    const [playerName, penalty] = text.split(' for ');
+    const player = findPlayerId(playerName);
+    
+    return {
+        event: 'misconduct',
+        type: 'Misconduct',
+        penalty: penalty.replace('.', ''),
+        player,
+        description
+    }
+}
+
 export const createEjectedEvent = description => {
     
     let playerName = description.replace(' is ejected from game.', '');

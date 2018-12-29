@@ -21,7 +21,7 @@ class PlayerStats extends Component {
     handleTabChange = (event, value) => this.setState(() => ({ tabValue: value }));
 
     render() {
-        const { classes, players, homeTeam, visitingTeam } = this.props;
+        const { classes, isFinal, players, homeTeam, visitingTeam } = this.props;
         return (
             <Paper>
                 <Tabs className={classes.tab} value={this.state.tabValue} onChange={this.handleTabChange} centered>
@@ -32,9 +32,9 @@ class PlayerStats extends Component {
                 <Grid container>
                     <Grid style={{padding: 20}} item xs>
                         {this.state.tabValue === 0 ?
-                            <StatsTable team={homeTeam} players={players} />
+                            <StatsTable team={homeTeam} players={players} isFinal={isFinal} />
                         :
-                            <StatsTable team={visitingTeam} players={players} />
+                            <StatsTable team={visitingTeam} players={players} isFinal={isFinal} />
                         }
                     </Grid>
                 </Grid>

@@ -50,7 +50,7 @@ const TeamStat = ({ classes, title, homeTeam, visitingTeam, statAppend }) => {
             <Grid className={classes.title} item xs>
                 <Typography variant="subtitle1">{title}</Typography>
             </Grid>
-            <Grid item xs>
+            <Grid item>
                 <Grid container alignItems="center">
                     <Grid item xs>
                         {generateTeamImg(visitingTeam.id)}
@@ -63,7 +63,7 @@ const TeamStat = ({ classes, title, homeTeam, visitingTeam, statAppend }) => {
                     </Grid>
                 </Grid>
             </Grid>
-            <Grid item xs>
+            <Grid item>
                 <Grid container alignItems="center">
                     <Grid item xs>
                         {generateTeamImg(homeTeam.id)}
